@@ -7,15 +7,7 @@ from pymongo import MongoClient
 from crews import create_crew_from_config
 from helpers import get_conversation_history, store_conversation
 import chainlit.input_widget as input_widget
-from urllib.parse import quote_plus
-import ujson
-from langfuse import Langfuse
 
-langfuse = Langfuse(
-  secret_key="sk-lf-d9d581e7-60ac-499b-949a-fd333c4992d7",
-  public_key="pk-lf-0447b70e-334a-4dff-8fbb-0d36ce3059ab",
-  host="https://cloud.langfuse.com"
-)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -110,19 +102,9 @@ async def main(message: cl.Message):
     logger.info(f"Received message: {message.content[:50]}...")
     try:
         start_time = time.time()
-        user_id = cl.user_session.get("user_id","default_user")
+        user_id = cl.user_session.get("user_id","default_user123")
         crew_id = cl.user_session.get("crew_id")
         db = cl.user_session.get("db")
-        
-        # Create a Langfuse trace for this conversation
-        # trace = langfuse.trace(
-        #     name="crew_conversation",
-        #     user_id=user_id,
-        #     metadata={
-        #         "crew_id": str(crew_id) if crew_id else "default",
-        #         "channel": "chainlit"
-        #     }
-        # )
 
         logger.info("Creating thinking message")
         thinking_msg = cl.Message(
@@ -155,7 +137,7 @@ async def main(message: cl.Message):
                         },
                         "message": "Tracking details",
                         "post_id": "429863360201247_122142193274468766",
-                        "comment_id": "122142193274468766_2030811864067732",
+                        "comment_id": "122142193274468766_20308118640677",
                         "created_time": 1742802044,
                         "item": "comment",
                         "parent_id": "429863360201247_122142193274468766",
@@ -168,23 +150,14 @@ async def main(message: cl.Message):
         }
         
         # Get conversation history for context
-        conversation_context = get_conversation_history(user_id)
-        print("#######################", conversation_context)
-
+        # conversation_context = get_conversation_history(user_id)
+        # print("#######################", conversation_context)
+        conversation_context = []
         message_content =' '.join(conversation_context) + ' ' + message.content
-        print("$$$$$$$$$$$$$$$$$$$$$$$$", message_content)
 
-        # # Log the user input in Langfuse
-        # trace.generation(
-        #     name="user_input",
-        #     input=message.content,
-        #     metadata={
-        #         "with_context": len(conversation_context) > 0,
-        #         "context_length": len(conversation_context)
-        #     }
-        # )
+        inputs = {"user_input": message_content, "payload": str(payload["entry"])}
 
-        crew = create_crew_from_config(crew_id, db=db, user_id=user_id, message_content=message_content, payload=str(payload))
+        crew = create_crew_from_config(crew_id, db=db, user_id=user_id, inputs=inputs)   
         
         # Update the thinking message
         thinking_msg.content = "Running crew agents to process your request..."
@@ -194,25 +167,7 @@ async def main(message: cl.Message):
         logger.info("Executing crew with user input")
 
         # generation_start = time.time()
-        result = crew.kickoff(inputs={"user_input": message_content, 
-                                      "payload": str(payload),
-                                      })
-
-
-        # generation_end = time.time()
-
-        # # Log the model generation in Langfuse
-        # generation = trace.generation(
-        #     name="crew_execution",
-        #     input=message_content,
-        #     output=result.raw,
-        #     start_time=generation_start,
-        #     end_time=generation_end,
-        #     model="crewai",
-        #     metadata={
-        #         "crew_id": str(crew_id) if crew_id else "default"
-        #     }
-        # )
+        result = crew.kickoff(inputs=inputs)
 
         if crew.memory:
             store_conversation(
@@ -236,12 +191,6 @@ async def main(message: cl.Message):
             # If it's not valid JSON or doesn't have the expected structure
             response_text = result.raw
         
-        # # Log the final processed response in Langfuse
-        # trace.event(
-        #     name="processed_response",
-        #     value=response_text
-        # )
-
         # Remove the thinking message
         logger.info("Removing thinking message")
         await thinking_msg.remove()
@@ -261,13 +210,6 @@ async def main(message: cl.Message):
             author="System",
             type="system"
         ).send()
-                
-        # # Add latency metric to Langfuse
-        # trace.event(
-        #     name="processing_time",
-        #     value=response_time,
-        #     metadata={"unit": "seconds"}
-        # )
 
     except Exception as e:      
         logger.error(f"Error processing message: {str(e)}", exc_info=True)
@@ -276,8 +218,6 @@ async def main(message: cl.Message):
             author="Error",
             type="error"
         ).send()                                       
-        
-
 
 @cl.on_chat_end
 def on_chat_end():

@@ -4,7 +4,7 @@ from  config import get_agent_config, get_tools_for_agent
 from helpers import create_tool_from_config
 import json
 
-def create_agent(agent_id, db, message_content, payload):
+def create_agent(agent_id, db, inputs):
     """Create an agent from stored configuration"""
     # Get agent configuration from database
     agent_config = get_agent_config(agent_id=agent_id, db=db)
@@ -21,20 +21,12 @@ def create_agent(agent_id, db, message_content, payload):
     backstory += f"Todays Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     
     goal = agent_config.get("goal")
-    goal = goal.replace("{user_input}", message_content)
 
-    # Before inserting payload into goal string, escape its curly braces
-    escaped_payload = str(payload).replace("{", "{{").replace("}", "}}")
-    goal = goal.replace("{payload}", escaped_payload)
-
-    # goal += f" user_input : {message_content}"
-    print('goalllllllllllllllllllllllllllllllllll: ', goal)
     # Use provided LLM or create a default one
     llm_config = agent_config.get("llm", {"model": "gpt-4o-mini", "temperature": 0.5})
     llm = LLM(model=llm_config.get("model"), temperature=llm_config.get("temperature"))
-
-    # Create the agent instance
-    return Agent(
+   
+    agent = Agent(
         role=agent_config.get("role"),
         goal=goal,
         backstory=backstory,
@@ -44,3 +36,7 @@ def create_agent(agent_id, db, message_content, payload):
         llm=llm,
         max_iter=3,
     )
+    agent.interpolate_inputs(inputs)
+
+    # Create the agent instance
+    return agent

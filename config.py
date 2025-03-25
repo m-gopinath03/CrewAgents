@@ -22,11 +22,4 @@ def get_tools_for_agent(agent_id, db):
     """Get tools associated with an agent"""
     agent_config = get_agent_config(agent_id, db)
     tool_ids = agent_config.get("tools", [])
-    
-    # tools = []
-    # for tool_id in tool_ids:
-    #     tool_config = get_tool_config(tool_id, db)
-    #     if tool_config:
-    #         tools.append(tool_config)
-    
     return tool_ids
