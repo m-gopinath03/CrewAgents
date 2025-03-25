@@ -38,7 +38,7 @@ def get_mem0_client():
     }
     return Memory.from_config(config)
 
-def store_conversation(user_id, user_message, assistant_response, metadata=None):
+def store_conversation(user_id, user_message, assistant_response, metadata):
     """Store a conversation turn in Mem0"""
     m = get_mem0_client()
     

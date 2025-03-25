@@ -21,7 +21,7 @@ def get_crew_config(crew_id, db):
     
     return crew_config
 
-def create_crew_from_config(crew_id, db, user_id, message_content):
+def create_crew_from_config(crew_id, db, user_id, message_content, payload):
     """Create a crew based on configuration from the database"""
     logger.info(f"Creating crew: {crew_id}")
     
@@ -32,7 +32,7 @@ def create_crew_from_config(crew_id, db, user_id, message_content):
     agents = []
     for agent_id in crew_config["agents"]:
         logger.info(f"Creating agent: {agent_id}")
-        agent = create_agent(agent_id, db, message_content)
+        agent = create_agent(agent_id, db, message_content, payload)
         agents.append(agent)
     
     # Create tasks
@@ -40,7 +40,7 @@ def create_crew_from_config(crew_id, db, user_id, message_content):
     for task_id in crew_config["tasks"]:
         logger.info(f"Creating task: {task_id}")
         # Find the corresponding agent for this task
-        task = create_task(task_id, db, message_content)
+        task = create_task(task_id, db, message_content, payload)
         tasks.append(task)
 
     memory = crew_config.get("memory", False)
@@ -58,7 +58,7 @@ def create_crew_from_config(crew_id, db, user_id, message_content):
         agents=agents,
         tasks=tasks,
         verbose=True,
-        memory=memory,
+        memory=False,
         memory_config=memory_config,
     )
     

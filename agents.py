@@ -4,7 +4,7 @@ from  config import get_agent_config, get_tools_for_agent
 from helpers import create_tool_from_config
 import json
 
-def create_agent(agent_id, db, message_content):
+def create_agent(agent_id, db, message_content, payload):
     """Create an agent from stored configuration"""
     # Get agent configuration from database
     agent_config = get_agent_config(agent_id=agent_id, db=db)
@@ -20,12 +20,15 @@ def create_agent(agent_id, db, message_content):
     backstory = agent_config.get("backstory", "")
     backstory += f"Todays Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
     
-    user_input = message_content
     goal = agent_config.get("goal")
-    # goal = goal.replace("{user_input}", user_input)
+    goal = goal.replace("{user_input}", message_content)
+
+    # Before inserting payload into goal string, escape its curly braces
+    escaped_payload = str(payload).replace("{", "{{").replace("}", "}}")
+    goal = goal.replace("{payload}", escaped_payload)
 
     # goal += f" user_input : {message_content}"
-
+    print('goalllllllllllllllllllllllllllllllllll: ', goal)
     # Use provided LLM or create a default one
     llm_config = agent_config.get("llm", {"model": "gpt-4o-mini", "temperature": 0.5})
     llm = LLM(model=llm_config.get("model"), temperature=llm_config.get("temperature"))
@@ -38,7 +41,6 @@ def create_agent(agent_id, db, message_content):
         verbose=agent_config.get("verbose", True),
         allow_delegation=agent_config.get("allow_delegation", False),
         tools=tools,
-        memory=agent_config.get("memory", False),
         llm=llm,
         max_iter=3,
     )

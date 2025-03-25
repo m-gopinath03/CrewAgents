@@ -4,7 +4,7 @@ from agents import create_agent
 from tools import get_tool_class
 
 
-def create_task(task_id, db, message_content):
+def create_task(task_id, db, message_content, payload):
     """Create a task from stored configuration"""
 
     # Get task configuration from database
@@ -15,14 +15,14 @@ def create_task(task_id, db, message_content):
     
     # Get the agent
     agent_id = task_config.get("agent_id")
-    agent = create_agent(agent_id, db, message_content)
+    agent = create_agent(agent_id, db, message_content, payload)
     
     human_input = task_config.get("human_input", False)
     
     context_task_id = task_config.get("task_id", None)
 
     # Create the context task if it exists
-    context = [create_task(context_task_id, db, message_content)] if context_task_id else None
+    context = [create_task(context_task_id, db, message_content, payload)] if context_task_id else None
 
     output_json_name = task_config.get("output_json", None)
     print('output json: ', output_json_name)

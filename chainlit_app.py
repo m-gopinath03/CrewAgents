@@ -135,23 +135,6 @@ async def main(message: cl.Message):
         # Create crew from database configuration
         logger.info(f"Creating crew from config with ID: {crew_id}")
 
-        # Get conversation history for context
-        conversation_context = get_conversation_history(user_id)
-        print("#######################", conversation_context)
-
-        message_content =' '.join(conversation_context) + ' ' + message.content
-        print("$$$$$$$$$$$$$$$$$$$$$$$$", message_content)
-
-        # # Log the user input in Langfuse
-        # trace.generation(
-        #     name="user_input",
-        #     input=message.content,
-        #     metadata={
-        #         "with_context": len(conversation_context) > 0,
-        #         "context_length": len(conversation_context)
-        #     }
-        # )
-
         payload = {
             "entry": [{
                 "id": "429863360201247",
@@ -184,7 +167,24 @@ async def main(message: cl.Message):
             "object": "page"
         }
         
-        crew = create_crew_from_config(crew_id, db=db, user_id=user_id, message_content=message_content)
+        # Get conversation history for context
+        conversation_context = get_conversation_history(user_id)
+        print("#######################", conversation_context)
+
+        message_content =' '.join(conversation_context) + ' ' + message.content
+        print("$$$$$$$$$$$$$$$$$$$$$$$$", message_content)
+
+        # # Log the user input in Langfuse
+        # trace.generation(
+        #     name="user_input",
+        #     input=message.content,
+        #     metadata={
+        #         "with_context": len(conversation_context) > 0,
+        #         "context_length": len(conversation_context)
+        #     }
+        # )
+
+        crew = create_crew_from_config(crew_id, db=db, user_id=user_id, message_content=message_content, payload=str(payload))
         
         # Update the thinking message
         thinking_msg.content = "Running crew agents to process your request..."
@@ -194,7 +194,9 @@ async def main(message: cl.Message):
         logger.info("Executing crew with user input")
 
         # generation_start = time.time()
-        result = crew.kickoff(inputs={"user_input": message_content, "payload": str(payload["entry"])})
+        result = crew.kickoff(inputs={"user_input": message_content, 
+                                      "payload": str(payload),
+                                      })
 
 
         # generation_end = time.time()

@@ -31,10 +31,10 @@ def process_message():
             logger.error("Missing required field 'content'")
             return jsonify({"error": "Missing required field 'content'"}), 400
             
-        message_content = req_data["content"]
+        content = req_data["content"]
         user_id = req_data.get("user_id", "default_user")
 
-        logger.info(f"Processing message: {message_content}")
+        logger.info(f"Processing message: {content}")
         
         # Get crew name from request or use default
         crew_id = req_data.get("crew_id")
@@ -43,8 +43,10 @@ def process_message():
         logger.info("Creating Crew")
 
         # # Get conversation history for context
-        conversation_context = get_conversation_history(user_id, message_content)
+        conversation_context = get_conversation_history(user_id)
         print("#######################", conversation_context)
+        message_content =' '.join(conversation_context) + ' ' + content
+
 
         client = MongoClient(os.getenv("MONGODB_URI"))
         db = client["crewai_db"]
@@ -52,9 +54,42 @@ def process_message():
         # Create crew from database configuration
         crew = create_crew_from_config(crew_id, db=db, user_id=user_id,message_content=message_content) 
         
+        payload = {
+            "entry": [{
+                "id": "429863360201247",
+                "time": 1742802047,
+                "changes": [{
+                    "value": {
+                        "from": {
+                            "id": "28266067783040524",
+                            "name": "Mohammed Akhnas Gawai"
+                        },
+                        "post": {
+                            "status_type": "added_photos",
+                            "is_published": True,
+                            "updated_time": "2025-03-24T07:40:44+0000",
+                            "permalink_url": "https://www.facebook.com/122141934062468766/posts/pfbid034KQwDd28snHvzsPFiuwQs3QQCt8KgWQbvDe2tK7cxoLNzKegRZkGAvRMohkZG3X5l",
+                            "promotion_status": "inactive",
+                            "id": "429863360201247_122142193274468766"
+                        },
+                        "message": "Tracking details",
+                        "post_id": "429863360201247_122142193274468766",
+                        "comment_id": "122142193274468766_2030811864067732",
+                        "created_time": 1742802044,
+                        "item": "comment",
+                        "parent_id": "429863360201247_122142193274468766",
+                        "verb": "add"
+                    },
+                    "field": "feed"
+                }]
+            }],
+            "object": "page"
+        }
+        
         # Execute the crew with the message content - add timeout
         logger.info("Executing crew")
-        result = crew.kickoff(inputs={"user_input": message_content})
+        result = crew.kickoff(inputs={"user_input": message_content, "payload": str(payload["entry"])})
+
 
         # Store this conversation turn
         if crew.memory:
